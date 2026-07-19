@@ -1,0 +1,51 @@
+# ─── YOLO / Ultralytics ───
+runs/
+*.pt
+*.onnx
+*.engine
+*.tflite
+*.mlmodel
+
+# ─── Dataset (large files) ───
+dataset/train/images/
+dataset/valid/images/
+dataset/test/images/
+raw_images/**/*.jpg
+raw_images/**/*.jpeg
+raw_images/**/*.png
+raw_images/**/*.bmp
+
+# ─── Python ───
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# ─── Virtual Environment ───
+venv/
+env/
+.venv/
+.env/
+
+# ─── IDE ───
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ─── OS ───
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Jupyter ───
+.ipynb_checkpoints/
+
+# ─── Misc ───
+*.log
+*.tmp

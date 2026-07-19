@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coke Can Inspection - Live Monitoring Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #0b0b0d;
+            --panel-bg: #141417;
+            --accent-red: #dd0b12;
+            --accent-blue: #0076ff;
+            --text-main: #f0f0f5;
+            --text-muted: #8e8e93;
+            --border-color: #2c2c2e;
+            --pass-green: #34c759;
+            --fail-red: #ff3b30;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            padding: 24px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 25px;
+        }
+
+        .header-title h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+        }
+
+        .header-title p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: #1c1c1e;
+            padding: 8px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--text-muted);
+            box-shadow: 0 0 8px var(--text-muted);
+        }
+
+        .status-dot.online {
+            background-color: var(--pass-green);
+            box-shadow: 0 0 8px var(--pass-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 0.8; }
+            50% { transform: scale(1.15); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0.8; }
+        }
+
+        /* Metrics grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .metric-card {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 18px;
+        }
+
+        .metric-card h3 {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .metric-card .value {
+            font-size: 26px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .metric-card .subtitle {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Workspace Grid */
+        .workspace {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel h2 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Live console feed */
+        .console-feed {
+            background-color: #0e0e11;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #34c759;
+            height: 280px;
+            overflow-y: auto;
+        }
+
+        .console-line {
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+
+        .console-line.timestamp {
+            color: var(--text-muted);
+        }
+
+        .console-line.fail {
+            color: var(--fail-red);
+        }
+
+        .console-line.info {
+            color: #0076ff;
+        }
+
+        /* History Table */
+        .history-container {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th {
+            background-color: #1c1c1e;
+            color: var(--text-muted);
+            text-align: left;
+            padding: 10px;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tr:hover {
+            background-color: #1c1c21;
+        }
+
+        .status-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 6px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .status-badge.pass {
+            background-color: rgba(52, 199, 89, 0.15);
+            color: var(--pass-green);
+        }
+
+        .status-badge.fail {
+            background-color: rgba(255, 59, 48, 0.15);
+            color: var(--fail-red);
+        }
+
+        .action-link {
+            color: var(--accent-red);
+            text-decoration: none;
+            font-weight: 600;
+            margin-right: 12px;
+        }
+
+        .action-link:hover {
+            text-decoration: underline;
+        }
+
+        .flag-status {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .flag-status span {
+            margin-right: 6px;
+        }
+
+        .flag-status .success {
+            color: var(--pass-green);
+        }
+
+        .flag-status .error {
+            color: var(--fail-red);
+        }
+
+        /* Sidebar activity */
+        .active-card {
+            background-color: #1c1c21;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .active-card h3 {
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .active-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+
+        .active-label {
+            color: var(--text-muted);
+        }
+
+        .active-value {
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .active-value.pass { color: var(--pass-green); }
+        .active-value.fail { color: var(--fail-red); }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-title">
+            <h1>Coke Can Inspection Gateway</h1>
+            <p>AI PC Receiver Dashboard &bull; Orchestrator Node</p>
+        </div>
+        <div class="connection-status">
+            <span class="status-dot" id="conn-dot"></span>
+            <span id="conn-text">UNO Q OFFLINE</span>
+        </div>
+    </header>
+
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <h3>Total Inspected</h3>
+            <div class="value" id="stat-total">{{ stats.total_inspections }}</div>
+            <div class="subtitle">Arduino Edge Inspections</div>
+        </div>
+        <div class="metric-card">
+            <h3>Pass Rate</h3>
+            <div class="value" id="stat-pass-rate">{{ stats.pass_rate }}%</div>
+            <div class="subtitle">Target: &ge; 90%</div>
+        </div>
+        <div class="metric-card">
+            <h3>Passed / Failed</h3>
+            <div class="value">
+                <span style="color: var(--pass-green)" id="stat-passed">{{ stats.passed }}</span> 
+                <span style="color: var(--text-muted)">/</span> 
+                <span style="color: var(--fail-red)" id="stat-failed">{{ stats.failed }}</span>
+            </div>
+            <div class="subtitle">Quality Categorization</div>
+        </div>
+        <div class="metric-card">
+            <h3>Dents / Scratches</h3>
+            <div class="value">
+                <span id="stat-dents">{{ stats.total_dents }}</span>
+                <span style="color: var(--text-muted)">/</span>
+                <span id="stat-scratches">{{ stats.total_scratches }}</span>
+            </div>
+            <div class="subtitle">Total Defects Fused</div>
+        </div>
+        <div class="metric-card">
+            <h3>Avg Processing</h3>
+            <div class="value" id="stat-latency">{{ stats.avg_processing_time }}s</div>
+            <div class="subtitle">Edge processing latency</div>
+        </div>
+    </div>
+
+    <div class="workspace">
+        <!-- Main Panel: Live Feed & History -->
+        <div class="panel">
+            <h2>Live Inspection Event Log</h2>
+            <div class="console-feed" id="console-feed">
+                <div class="console-line info">[SYSTEM] AI PC receiver daemon running. Listening on http://0.0.0.0:8000/api/v1/inspection</div>
+                <div class="console-line info">[SYSTEM] SSE listener active. Waiting for UNO Q edge payloads...</div>
+            </div>
+
+            <h2 style="margin-top: 30px;">Inspection History Log</h2>
+            <div class="history-container">
+                <table id="history-table">
+                    <thead>
+                        <tr>
+                            <th>Inspection ID</th>
+                            <th>Timestamp</th>
+                            <th>Status</th>
+                            <th>Defects (D/S)</th>
+                            <th>Latency (s)</th>
+                            <th>Pipeline Reports Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-body">
+                        {% if not history %}
+                        <tr id="no-history-row"><td colspan="7" style="text-align: center; color: var(--text-muted);">No inspection records found. Send a payload from the UNO Q to start.</td></tr>
+                        {% endif %}
+                        {% for item in history %}
+                        <tr>
+                            <td><strong>{{ item.inspection_id }}</strong></td>
+                            <td>{{ item.timestamp }}</td>
+                            <td><span class="status-badge {{ item.status.lower() }}">{{ item.status }}</span></td>
+                            <td>{{ item.dents|length }} D / {{ item.scratches|length }} S</td>
+                            <td>{{ item.processing_time }}s</td>
+                            <td>
+                                <div class="flag-status">
+                                    <span class="success">✔ DB</span>
+                                    <span class="success">✔ 3D</span>
+                                    <span class="success">✔ PDF</span>
+                                </div>
+                            </td>
+                            <td>
+                                <a href="/output/reports/{{ item.inspection_id }}_report.pdf" class="action-link" target="_blank">PDF Report</a>
+                                <a href="/output/digital_twins/{{ item.inspection_id }}_report.html" class="action-link" target="_blank">3D Twin</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Sidebar: Active / Latest Inspection Panel -->
+        <div class="panel" style="padding: 15px;">
+            <h2>Latest Activity</h2>
+            <div class="active-card">
+                <h3>Inspection Summary</h3>
+                <div class="active-row">
+                    <span class="active-label">Inspection ID:</span>
+                    <span class="active-value" id="curr-id">N/A</span>
+                </div>
+                <div class="active-row">
+                    <span class="active-label">Status:</span>
+                    <span class="active-value" id="curr-status">N/A</span>
+                </div>
+                <div class="active-row">
+                    <span class="active-label">Confidence:</span>
+                    <span class="active-value" id="curr-conf">N/A</span>
+                </div>
+                <div class="active-row">
+                    <span class="active-label">Timestamp:</span>
+                    <span class="active-value" id="curr-time">N/A</span>
+                </div>
+            </div>
+
+            <div class="active-card">
+                <h3>Defect Counts</h3>
+                <div class="active-row">
+                    <span class="active-label">Dents Fused:</span>
+                    <span class="active-value" id="curr-dents">0</span>
+                </div>
+                <div class="active-row">
+                    <span class="active-label">Scratches Fused:</span>
+                    <span class="active-value" id="curr-scratches">0</span>
+                </div>
+            </div>
+
+            <div class="active-card">
+                <h3>Pipeline Diagnostics</h3>
+                <div class="active-row">
+                    <span class="active-label">DB Inserted:</span>
+                    <span class="active-value" id="curr-db">-</span>
+                </div>
+                <div class="active-row">
+                    <span class="active-label">3D Twin Gen:</span>
+                    <span class="active-value" id="curr-twin">-</span>
+                </div>
+                <div class="active-row">
+                    <span class="active-label">PDF Report Gen:</span>
+                    <span class="active-value" id="curr-pdf">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Setup Server-Sent Events listener
+        const source = new EventSource("/stream");
+        
+        let lastReceivedTime = null;
+
+        source.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            
+            if (data.event === "connected") {
+                console.log("SSE Connection verified:", data.message);
+                updateConnectionStatus(true);
+                return;
+            }
+
+            if (data.event === "inspection_event") {
+                const ins = data.data;
+                lastReceivedTime = Date.now();
+                updateConnectionStatus(true);
+
+                // 1. Log to console feed
+                logToFeed(ins);
+
+                // 2. Update stats indicators
+                fetchStats();
+
+                // 3. Update active card
+                updateActiveCard(ins);
+
+                // 4. Update history table
+                updateHistoryTable(ins);
+            }
+        };
+
+        source.onerror = function(err) {
+            console.error("SSE Connection dropped. Retrying...");
+            updateConnectionStatus(false);
+        };
+
+        // Poll checking to toggle ONLINE status based on last request timestamp
+        setInterval(() => {
+            if (lastReceivedTime && (Date.now() - lastReceivedTime > 25000)) {
+                // If no message in 25 seconds, display stand-by status
+                document.getElementById('conn-text').innerText = "UNO Q STAND-BY";
+                document.getElementById('conn-dot').style.backgroundColor = "#ff9500";
+                document.getElementById('conn-dot').style.boxShadow = "0 0 8px #ff9500";
+            }
+        }, 5000);
+
+        function updateConnectionStatus(online) {
+            const dot = document.getElementById("conn-dot");
+            const txt = document.getElementById("conn-text");
+            if (online) {
+                dot.className = "status-dot online";
+                txt.innerText = "UNO Q ONLINE (ACTIVE)";
+            } else {
+                dot.className = "status-dot";
+                dot.style.backgroundColor = "var(--fail-red)";
+                dot.style.boxShadow = "0 0 8px var(--fail-red)";
+                txt.innerText = "UNO Q OFFLINE";
+            }
+        }
+
+        function logToFeed(ins) {
+            const feed = document.getElementById("console-feed");
+            const time = ins.timestamp.split(" ")[1] || "";
+            const cls = ins.status === "FAIL" ? "fail" : "";
+            
+            const line = document.createElement("div");
+            line.className = `console-line ${cls}`;
+            line.innerHTML = `[${time}] Inspection ${ins.inspection_id} processed. Result: <strong>${ins.status}</strong> (${(ins.confidence * 100).toFixed(0)}% confidence). Dents: ${ins.num_dents}, Scratches: ${ins.num_scratches}. DB: ${ins.db_saved ? 'OK' : 'FAIL'}, 3D: ${ins.twin_generated ? 'OK' : 'FAIL'}, PDF: ${ins.report_generated ? 'OK' : 'FAIL'}`;
+            
+            feed.appendChild(line);
+            feed.scrollTop = feed.scrollHeight;
+        }
+
+        function updateActiveCard(ins) {
+            document.getElementById("curr-id").innerText = ins.inspection_id;
+            
+            const statusVal = document.getElementById("curr-status");
+            statusVal.innerText = ins.status;
+            statusVal.className = `active-value ${ins.status.lower()}`;
+            
+            document.getElementById("curr-conf").innerText = (ins.confidence * 100).toFixed(0) + "%";
+            document.getElementById("curr-time").innerText = ins.timestamp;
+            document.getElementById("curr-dents").innerText = ins.num_dents;
+            document.getElementById("curr-scratches").innerText = ins.num_scratches;
+
+            document.getElementById("curr-db").innerHTML = ins.db_saved ? '<span style="color:var(--pass-green)">✔ Success</span>' : '<span style="color:var(--fail-red)">✘ Fail</span>';
+            document.getElementById("curr-twin").innerHTML = ins.twin_generated ? '<span style="color:var(--pass-green)">✔ Generated</span>' : '<span style="color:var(--fail-red)">✘ Failed</span>';
+            document.getElementById("curr-pdf").innerHTML = ins.report_generated ? '<span style="color:var(--pass-green)">✔ Generated</span>' : '<span style="color:var(--fail-red)">✘ Failed</span>';
+        }
+
+        function updateHistoryTable(ins) {
+            const body = document.getElementById("history-body");
+            
+            // Remove no history row if exists
+            const noHist = document.getElementById("no-history-row");
+            if (noHist) noHist.remove();
+
+            const tr = document.createElement("tr");
+            
+            const dbFlag = ins.db_saved ? '<span class="success">✔ DB</span>' : '<span class="error">✘ DB</span>';
+            const twinFlag = ins.twin_generated ? '<span class="success">✔ 3D</span>' : '<span class="error">✘ 3D</span>';
+            const pdfFlag = ins.report_generated ? '<span class="success">✔ PDF</span>' : '<span class="error">✘ PDF</span>';
+
+            tr.innerHTML = `
+                <td><strong>${ins.inspection_id}</strong></td>
+                <td>${ins.timestamp}</td>
+                <td><span class="status-badge ${ins.status.toLowerCase()}">${ins.status}</span></td>
+                <td>${ins.num_dents} D / ${ins.num_scratches} S</td>
+                <td>${ins.processing_time}s</td>
+                <td>
+                    <div class="flag-status">
+                        ${dbFlag}
+                        ${twinFlag}
+                        ${pdfFlag}
+                    </div>
+                </td>
+                <td>
+                    <a href="/output/reports/${ins.pdf_filename}" class="action-link" target="_blank">PDF Report</a>
+                    <a href="/output/digital_twins/${ins.html_filename}" class="action-link" target="_blank">3D Twin</a>
+                </td>
+            `;
+
+            // Insert at top of table
+            body.insertBefore(tr, body.firstChild);
+        }
+
+        function fetchStats() {
+            // Simply fetch health variables to update top stats live
+            fetch("/api/v1/health")
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === "ok") {
+                        const s = data.database_stats;
+                        document.getElementById("stat-total").innerText = s.total_inspections;
+                        document.getElementById("stat-pass-rate").innerText = s.pass_rate + "%";
+                        document.getElementById("stat-passed").innerText = s.passed;
+                        document.getElementById("stat-failed").innerText = s.failed;
+                        document.getElementById("stat-dents").innerText = s.total_dents;
+                        document.getElementById("stat-scratches").innerText = s.total_scratches;
+                        document.getElementById("stat-latency").innerText = s.avg_processing_time + "s";
+                    }
+                })
+                .catch(err => console.error("Error fetching database stats:", err));
+        }
+
+        // Helper string lower mapping
+        String.prototype.lower = function() {
+            return this.toLowerCase();
+        }
+    </script>
+</body>
+</html>

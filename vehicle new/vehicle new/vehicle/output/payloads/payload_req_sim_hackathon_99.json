@@ -1,0 +1,45 @@
+{
+    "version": "1.0",
+    "request_id": "req_sim_hackathon_99",
+    "inspection_id": "INSPECT_20260719_SIMULATED",
+    "timestamp": "2026-07-19 04:35:12",
+    "status": "FAIL",
+    "confidence": 0.94,
+    "processing_time": 0.42,
+    "scratches": [
+        {
+            "id": "SCR_001",
+            "length_mm": 15.4,
+            "width_mm": 0.65,
+            "area_mm2": 10.0,
+            "angle": 45.0,
+            "confidence": 0.91,
+            "camera_id": "Camera_1",
+            "height": -0.02
+        }
+    ],
+    "dents": [
+        {
+            "id": "DENT_001",
+            "diameter_mm": 7.8,
+            "depth_mm": 1.62,
+            "area_mm2": 47.8,
+            "angle": 120.0,
+            "confidence": 0.95,
+            "camera_id": "Camera_1",
+            "height": 0.03,
+            "severity": "Major"
+        },
+        {
+            "id": "DENT_002",
+            "diameter_mm": 8.2,
+            "depth_mm": 1.74,
+            "area_mm2": 52.8,
+            "angle": 122.0,
+            "confidence": 0.89,
+            "camera_id": "Camera_2",
+            "height": 0.031,
+            "severity": "Major"
+        }
+    ]
+}

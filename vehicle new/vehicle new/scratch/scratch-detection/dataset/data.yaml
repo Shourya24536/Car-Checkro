@@ -1,0 +1,12 @@
+names:
+- Can-Scratch-Detection
+nc: 1
+roboflow:
+  license: Private
+  project: can-scratch-detection
+  url: https://app.roboflow.com/vedants-workspace-yaiey/can-scratch-detection/1
+  version: 1
+  workspace: vedants-workspace-yaiey
+test: ../test/images
+train: ../train/images
+val: ../valid/images
